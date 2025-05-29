@@ -36,9 +36,9 @@ if st.button("🔄 Convert URLs"):
         st.subheader("✅ Converted URLs")
         st.dataframe(df_result, use_container_width=True)
 
-        # Download as Excel using openpyxl
+        # Download as Excel without specifying engine
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        with pd.ExcelWriter(output) as writer:
             df_result.to_excel(writer, index=False, sheet_name="Links")
         st.download_button(
             label="📥 Download as Excel",
