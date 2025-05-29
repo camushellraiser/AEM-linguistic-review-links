@@ -36,15 +36,13 @@ if st.button("🔄 Convert URLs"):
         st.subheader("✅ Converted URLs")
         st.dataframe(df_result, use_container_width=True)
 
-        # Download as Excel without specifying engine
-        output = io.BytesIO()
-        with pd.ExcelWriter(output) as writer:
-            df_result.to_excel(writer, index=False, sheet_name="Links")
+        # Download as CSV (most compatible)
+        csv_data = df_result.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="📥 Download as Excel",
-            data=output.getvalue(),
-            file_name="AEM_Linguistic_Review_Links.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            label="📥 Download as CSV",
+            data=csv_data,
+            file_name="AEM_Linguistic_Review_Links.csv",
+            mime="text/csv"
         )
     else:
         st.warning("Please paste at least one URL before clicking 'Convert'.")
