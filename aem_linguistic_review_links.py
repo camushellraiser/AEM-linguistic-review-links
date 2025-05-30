@@ -64,7 +64,7 @@ with col2:
 
 if reset:
     st.session_state.clear()
-    st.experimental_rerun()
+    st.rerun()
 
 if convert:
     if not urls_input.strip():
