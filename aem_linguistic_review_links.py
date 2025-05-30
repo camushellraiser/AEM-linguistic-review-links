@@ -37,20 +37,18 @@ def convert_domain_and_protocol(url):
 
 def replace_locale_path(url, new_path_segment):
     parts = url.strip().split("/")
-    # Try to find the locale pair segment (e.g., 'japan/en-jp')
     for i in range(len(parts) - 1):
         candidate = f"{parts[i]}/{parts[i + 1]}"
         if candidate in LOCALE_TO_PATH.values():
             parts[i] = new_path_segment.split("/")[0]
             parts[i + 1] = new_path_segment.split("/")[1]
             return "/".join(parts)
-    # If no match, insert the new path in the expected location
     try:
         index = parts.index("content") + 2
         parts[index] = new_path_segment.split("/")[0]
         parts[index + 1] = new_path_segment.split("/")[1]
     except Exception:
-        return url  # fallback: return original
+        return url
     return "/".join(parts)
 
 # Convert URLs
@@ -62,6 +60,7 @@ if st.button("🔄 Convert URLs"):
     else:
         urls = urls_input.strip().splitlines()
         result_data = []
+        all_converted_urls = []
 
         for url in urls:
             for locale in selected_locales:
@@ -73,15 +72,28 @@ if st.button("🔄 Convert URLs"):
                     "Locale": locale,
                     "Converted URL": final_url
                 })
+                all_converted_urls.append(final_url)
 
         df_result = pd.DataFrame(result_data)
         st.subheader("✅ Converted URLs")
+
+        # Apply wrapping style
+        st.markdown(
+            "<style>div[data-testid='stDataFrame'] div[role='gridcell'] { white-space: pre-wrap; }</style>",
+            unsafe_allow_html=True,
+        )
         st.dataframe(df_result, use_container_width=True)
+
+        # Display all converted URLs in a text area for easy copy
+        st.markdown("📋 **Copy All Converted URLs**")
+        st.text_area("All URLs", value="\n".join(all_converted_urls), height=200, key="copy_all")
 
         # Export to Excel
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df_result.to_excel(writer, index=False, sheet_name="Converted Links")
+            worksheet = writer.sheets["Converted Links"]
+            worksheet.set_column("A:C", 40)
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
             data=output.getvalue(),
