@@ -63,8 +63,7 @@ with col2:
     reset = st.button("🔁 Reset")
 
 if reset:
-    st.session_state.urls = ""
-    st.session_state.locales = []
+    st.session_state.clear()
     st.experimental_rerun()
 
 if convert:
