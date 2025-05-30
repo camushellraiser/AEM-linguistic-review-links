@@ -58,51 +58,36 @@ if st.button("🔄 Convert URLs"):
         st.warning("Please select at least one locale.")
     else:
         urls = urls_input.strip().splitlines()
-        result_data = []
-        all_converted_urls = []
+        grouped_urls = {}
 
-        for url in urls:
-            for locale in selected_locales:
-                new_path = LOCALE_TO_PATH[locale]
+        for locale in selected_locales:
+            new_path = LOCALE_TO_PATH[locale]
+            converted = []
+            for url in urls:
                 updated_url = replace_locale_path(url, new_path)
                 final_url = convert_domain_and_protocol(updated_url)
-                result_data.append({
-                    "Original URL": url,
-                    "Locale": locale,
-                    "Converted URL": final_url
-                })
-                all_converted_urls.append(final_url)
+                converted.append(final_url)
+            grouped_urls[locale] = converted
 
-        df_result = pd.DataFrame(result_data)
-        st.subheader("✅ Converted URLs")
-
-        # Apply wrapping style
-        st.markdown(
-            "<style>div[data-testid='stDataFrame'] div[role='gridcell'] { white-space: pre-wrap; }</style>",
-            unsafe_allow_html=True,
-        )
-        st.dataframe(df_result, use_container_width=True)
-
-        # Copy all converted URLs block
-        st.markdown("📋 **Copy All Converted URLs**")
-        all_text = "\n".join(all_converted_urls)
-        st.text_area("All Converted URLs", value=all_text, height=200, key="copy_all_area")
-
-        # Display each converted URL with a copy button using JS
-        st.markdown("---")
-        st.markdown("**Copy Individual Converted URLs**")
-        for i, url in enumerate(all_converted_urls):
-            st.code(url, language="text")
-            st.markdown(f"""
-                <button onclick="navigator.clipboard.writeText('{url}')">📋 Copy</button>
-            """, unsafe_allow_html=True)
+        # Display results in grouped blocks
+        st.subheader("✅ Converted URLs by Locale")
+        for locale, url_list in grouped_urls.items():
+            st.markdown(f"### {locale}")
+            st.text("\n".join(url_list))
 
         # Export to Excel
+        all_rows = [
+            {"Locale": locale, "Converted URL": url}
+            for locale, urls in grouped_urls.items()
+            for url in urls
+        ]
+        df_result = pd.DataFrame(all_rows)
+
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df_result.to_excel(writer, index=False, sheet_name="Converted Links")
             worksheet = writer.sheets["Converted Links"]
-            worksheet.set_column("A:C", 40)
+            worksheet.set_column("A:B", 40)
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
             data=output.getvalue(),
