@@ -97,15 +97,17 @@ if convert:
             for url in urls
         ]
         df_result = pd.DataFrame(all_rows)
+        df_result.rename(columns={"Converted URL": "AEM Linguistic Review Links"}, inplace=True)
 
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df_result.to_excel(writer, index=False, sheet_name="Converted Links")
+            df_result.to_excel(writer, index=False, sheet_name="AEM Linguistic Review Links")
             worksheet = writer.sheets["Converted Links"]
-            worksheet.set_column("A:B", 40)
+            worksheet.set_column("A:A", 20)
+            worksheet.set_column("B:B", 60)
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
             data=output.getvalue(),
-            file_name="Converted_Links.xlsx",
+            file_name="AEM Linguistic Review Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
