@@ -25,11 +25,15 @@ st.title("🌐 AEM Linguistic Review Links Converter")
 
 st.markdown("Paste one or more URLs below (one per line), then choose one or more locale targets:")
 
-# Input text area
-urls_input = st.text_area("📥 Paste URLs here:", height=200)
+# Session state initialization
+if "urls" not in st.session_state:
+    st.session_state.urls = ""
+if "locales" not in st.session_state:
+    st.session_state.locales = []
 
-# Dropdown for locales
-selected_locales = st.multiselect("🌍 Select target locales:", options=list(LOCALE_TO_PATH.keys()))
+# Input fields
+urls_input = st.text_area("📥 Paste URLs here:", value=st.session_state.urls, height=200, key="urls")
+selected_locales = st.multiselect("🌍 Select target locales:", options=list(LOCALE_TO_PATH.keys()), default=st.session_state.locales, key="locales")
 
 def convert_domain_and_protocol(url):
     return url.replace("https://author-prod-use1.aemprod.thermofisher.net", "http://author1.prod.thermofisher.com")
@@ -50,8 +54,20 @@ def replace_locale_path(url, new_path_segment):
         return url
     return "/".join(parts)
 
-# Convert URLs
-if st.button("🔄 Convert URLs"):
+# Buttons
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    convert = st.button("🔄 Convert URLs")
+with col2:
+    reset = st.button("🔁 Reset")
+
+if reset:
+    st.session_state.urls = ""
+    st.session_state.locales = []
+    st.experimental_rerun()
+
+if convert:
     if not urls_input.strip():
         st.warning("Please paste at least one URL.")
     elif not selected_locales:
