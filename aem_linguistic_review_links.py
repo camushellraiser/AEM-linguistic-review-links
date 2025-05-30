@@ -1,7 +1,7 @@
-
 import streamlit as st
 import pandas as pd
 import io
+import pyperclip
 
 # Mapping from locale to region path
 LOCALE_TO_PATH = {
@@ -22,15 +22,15 @@ LOCALE_TO_PATH = {
 }
 
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
-st.title("🌐 AEM Linguistic Review Links Converter")
+st.title("\U0001F310 AEM Linguistic Review Links Converter")
 
 st.markdown("Paste one or more URLs below (one per line), then choose one or more locale targets:")
 
 # Input text area
-urls_input = st.text_area("📥 Paste URLs here:", height=200)
+urls_input = st.text_area("\U0001F4E5 Paste URLs here:", height=200)
 
 # Dropdown for locales
-selected_locales = st.multiselect("🌍 Select target locales:", options=list(LOCALE_TO_PATH.keys()))
+selected_locales = st.multiselect("\U0001F30D Select target locales:", options=list(LOCALE_TO_PATH.keys()))
 
 def convert_domain_and_protocol(url):
     return url.replace("https://author-prod-use1.aemprod.thermofisher.net", "http://author1.prod.thermofisher.com")
@@ -52,7 +52,7 @@ def replace_locale_path(url, new_path_segment):
     return "/".join(parts)
 
 # Convert URLs
-if st.button("🔄 Convert URLs"):
+if st.button("\U0001F504 Convert URLs"):
     if not urls_input.strip():
         st.warning("Please paste at least one URL.")
     elif not selected_locales:
@@ -75,7 +75,7 @@ if st.button("🔄 Convert URLs"):
                 all_converted_urls.append(final_url)
 
         df_result = pd.DataFrame(result_data)
-        st.subheader("✅ Converted URLs")
+        st.subheader("\u2705 Converted URLs")
 
         # Apply wrapping style
         st.markdown(
@@ -84,9 +84,20 @@ if st.button("🔄 Convert URLs"):
         )
         st.dataframe(df_result, use_container_width=True)
 
-        # Display all converted URLs in a text area for easy copy
-        st.markdown("📋 **Copy All Converted URLs**")
-        st.text_area("All URLs", value="\n".join(all_converted_urls), height=200, key="copy_all")
+        # Copy all converted URLs block
+        st.markdown("\U0001F4CB **Copy All Converted URLs**")
+        all_text = "\n".join(all_converted_urls)
+        st.text_area("All Converted URLs", value=all_text, height=200, key="copy_all_area")
+
+        # Display each converted URL with a copy button
+        st.markdown("---")
+        st.markdown("**Copy Individual Converted URLs**")
+        for i, url in enumerate(all_converted_urls):
+            col1, col2 = st.columns([10, 1])
+            with col1:
+                st.code(url, language="text")
+            with col2:
+                st.button("Copy", key=f"copy_{i}", help=f"Copy URL {i + 1}")
 
         # Export to Excel
         output = io.BytesIO()
@@ -95,7 +106,7 @@ if st.button("🔄 Convert URLs"):
             worksheet = writer.sheets["Converted Links"]
             worksheet.set_column("A:C", 40)
         st.download_button(
-            label="📥 Download as Excel (.xlsx)",
+            label="\U0001F4C5 Download as Excel (.xlsx)",
             data=output.getvalue(),
             file_name="Converted_Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
