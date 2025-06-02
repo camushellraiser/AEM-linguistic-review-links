@@ -42,6 +42,7 @@ FLAG_BY_LOCALE = {
 BASE_PREFIX = "http://author1.prod.thermofisher.com/editor.html"
 
 # --- Helper functions ---
+
 def ensure_full_url(item: str) -> str:
     item = item.strip()
     if not item:
@@ -115,9 +116,9 @@ with col2:
     reset_clicked = st.button("🔁 Reset")
 
 if reset_clicked:
-    # Clear all session state and re-run the app immediately
+    # Clear all session state and stop to re-render fresh
     st.session_state.clear()
-    st.experimental_rerun()
+    st.stop()
 
 if convert_clicked:
     raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
