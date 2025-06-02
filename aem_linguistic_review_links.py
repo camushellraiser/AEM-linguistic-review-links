@@ -115,12 +115,8 @@ with col2:
     reset_clicked = st.button("🔁 Reset")
 
 if reset_clicked:
-    # Reset all UI inputs and outputs
-    st.session_state.urls = ""
-    st.session_state.locales = []
-    st.session_state.grouped_urls = {}
-    st.session_state.excel_bytes = None
-    # Rerun to refresh UI
+    # Clear all session state and rerun
+    st.session_state.clear()
     st.experimental_rerun()
 
 if convert_clicked:
