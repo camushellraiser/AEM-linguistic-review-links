@@ -132,7 +132,6 @@ if reset_clicked:
 if convert_clicked:
     grouped_urls = {}  # Initialize here to avoid NameError
     if not selected_locales:
-    if not selected_locales:
         st.warning("Please select at least one locale.")
     else:
         if type_option == "Launch Page":
@@ -140,7 +139,7 @@ if convert_clicked:
             for locale in selected_locales:
                 raw_text = table_inputs.get(locale, "")
                 raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-                prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
+                prepared = [ensure_full_url(item.split("	")[1]) if "	" in item else ensure_full_url(item) for item in raw_items]
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
@@ -148,12 +147,12 @@ if convert_clicked:
             # Regular Page: use single text area for all locales
             raw_text = table_inputs.get("regular", "")
             raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-            prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
+            prepared = [ensure_full_url(item.split("	")[1]) if "	" in item else ensure_full_url(item) for item in raw_items]
             for locale in selected_locales:
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
-    # Store results in session state for display and Excel export
+    # Store results in session state for display and Excel export for display and Excel export
     st.session_state.grouped_urls = grouped_urls
     # Build Excel bytes
     all_rows = [{"Locale": loc, "AEM Linguistic Review Links": u}
