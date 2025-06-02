@@ -86,8 +86,8 @@ st.title("🌐 AEM Linguistic Review Links Converter")
 type_option = st.radio(
     "Select Page Type:",
     [
-        "Same Page(s) - Use for one or several locales using the same page",
-        "Different Page(s) - Use for several locales using different pages or for Launch Pages"
+        "Same Page(s) - _Use for one or several locales using the same page_",
+        "Different Page(s) - _Use for several locales using different pages or for Launch Pages_"
     ]
 )
 # Strip description
