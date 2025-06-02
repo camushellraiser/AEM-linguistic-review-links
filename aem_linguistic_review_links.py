@@ -21,8 +21,26 @@ LOCALE_TO_PATH = {
     "ja-JP": "japan/en-jp"
 }
 
+# Mapping from locale to flag emoji
+FLAG_BY_LOCALE = {
+    "zh-TW": "🇹🇼",
+    "en-US": "🇺🇸",
+    "pt-BR": "🇧🇷",
+    "es-AR": "🇦🇷",
+    "es-CL": "🇨🇱",
+    "es-MX": "🇲🇽",
+    "fr-FR": "🇫🇷",
+    "de-DE": "🇩🇪",
+    "ru-RU": "🇷🇺",
+    "es-ES": "🇪🇸",
+    "zh-CN": "🇨🇳",
+    "zh-HK": "🇭🇰",
+    "ko-KR": "🇰🇷",
+    "ja-JP": "🇯🇵"
+}
+
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
-stitle="🌐 AEM Linguistic Review Links Converter"
+stitle = "🌐 AEM Linguistic Review Links Converter"
 st.title(stitle)
 
 st.markdown("Paste one or more URLs below (one per line), then choose one or more locale targets:")
@@ -67,13 +85,10 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
             existing_country = existing_segment.split("/")[0]
             new_country = new_path_segment.split("/")[0]
             if existing_country == new_country:
-                # Same country → do not touch the path; domain/protocol will be changed separately.
-                return url
-            # Different country → swap segments
+                return url  # Same country, no path change
             return url.replace(token, f"/{new_path_segment}/")
 
-    # If no known LOCALE_TO_PATH match found, leave URL path intact
-    return url
+    return url  # No known locale segment found
 
 # Buttons
 col1, col2 = st.columns([1, 1])
@@ -99,27 +114,19 @@ if convert:
             new_path = LOCALE_TO_PATH[locale]
             converted = []
             for url in urls:
-                # 1) Replace locale path (or leave it if same-country)
                 updated_url = replace_locale_path(url, new_path)
-                # 2) Always convert domain/protocol
                 final_url = convert_domain_and_protocol(updated_url)
                 converted.append(final_url)
             grouped_urls[locale] = converted
 
-        # Build a list of dicts but skip any blank URLs
+        # Build a list of dicts, skipping blank URLs
         all_rows = [
-            {
-                "Locale": locale,
-                "AEM Linguistic Review Links": url
-            }
+            {"Locale": locale, "AEM Linguistic Review Links": url}
             for locale, urls in grouped_urls.items()
             for url in urls
-            if url.strip()  # <-- removes any truly empty or whitespace URLs
+            if url.strip()
         ]
         df_result = pd.DataFrame(all_rows)
-
-        # Optional extra filtering (if needed):
-        # df_result = df_result[df_result["AEM Linguistic Review Links"].str.strip().astype(bool)]
 
         # Write to Excel
         output = io.BytesIO()
@@ -130,13 +137,14 @@ if convert:
                 sheet_name="AEM Linguistic Review Links"
             )
             worksheet = writer.sheets["AEM Linguistic Review Links"]
-            worksheet.set_column("A:A", 20)  # Locale column width
-            worksheet.set_column("B:B", 60)  # URL column width
+            worksheet.set_column("A:A", 20)
+            worksheet.set_column("B:B", 60)
 
         st.subheader("✅ Converted URLs by Locale")
         for locale, url_list in grouped_urls.items():
-            st.markdown(f"### {locale}")
-            st.text("\n\n".join(url_list))  # Add an empty line between each URL
+            flag = FLAG_BY_LOCALE.get(locale, "")
+            st.markdown(f"### {locale} {flag}")
+            st.text("\n\n".join(url_list))  # Blank line between each URL
 
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
