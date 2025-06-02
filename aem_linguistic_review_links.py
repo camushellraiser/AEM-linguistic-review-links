@@ -40,8 +40,7 @@ FLAG_BY_LOCALE = {
 }
 
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
-stitle = "🌐 AEM Linguistic Review Links Converter"
-st.title(stitle)
+st.title("🌐 AEM Linguistic Review Links Converter")
 
 st.markdown("Paste one or more URLs below (one per line), then choose one or more locale targets:")
 
@@ -49,13 +48,11 @@ st.markdown("Paste one or more URLs below (one per line), then choose one or mor
 if "urls" not in st.session_state:
     st.session_state.urls = ""
 if "locales" not in st.session_state:
+    # Store display labels initially empty
     st.session_state.locales = []
 
 # Build display labels combining flag + locale code
-display_to_locale = {
-    f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc
-    for loc in LOCALE_TO_PATH.keys()
-}
+display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCALE_TO_PATH.keys()}
 # Sort display labels alphabetically by locale code portion
 sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
 
@@ -63,11 +60,11 @@ sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split("
 urls_input = st.text_area("📥 Paste URLs here:", value=st.session_state.urls, height=200, key="urls")
 selected_display = st.multiselect(
     "🌍 Select target locales:",
-    options=sorted_display_labels,  # Show flag + locale
-    default=[f"{FLAG_BY_LOCALE.get(loc, '')} {loc}" for loc in st.session_state.locales],
+    options=sorted_display_labels,
+    default=st.session_state.locales,
     key="locales"
 )
-# Convert back to pure locale codes
+# Convert selected display back to pure locale codes
 selected_locales = [display_to_locale[d] for d in selected_display]
 
 if st.button("🔁 Reset"):
@@ -87,7 +84,6 @@ if st.button("🔄 Convert URLs"):
             new_path = LOCALE_TO_PATH[locale]
             converted = []
             for url in urls:
-                # Replace locale path and domain/protocol
                 updated_url = replace_locale_path(url, new_path)
                 final_url = convert_domain_and_protocol(updated_url)
                 converted.append(final_url)
@@ -126,6 +122,7 @@ if st.button("🔄 Convert URLs"):
             file_name="AEM Linguistic Review Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
 
 def convert_domain_and_protocol(url: str) -> str:
     return url.replace(
