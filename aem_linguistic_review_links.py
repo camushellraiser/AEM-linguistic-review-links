@@ -98,7 +98,12 @@ display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCA
 sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
 
 # Input fields
-urls_input = st.text_area("📥 Paste URLs/paths/rows here:", value=st.session_state.urls, height=200, key="urls")
+urls_input = st.text_area(
+    "📥 Paste URLs/paths/rows here:",
+    value=st.session_state.urls,
+    height=200,
+    key="urls"
+)
 selected_display = st.multiselect(
     "🌍 Select target locales:",
     options=sorted_display_labels,
@@ -114,11 +119,14 @@ with col1:
 with col2:
     reset_clicked = st.button("🔁 Reset")
 
+# If the user clicks Reset, clear everything and immediately return
 if reset_clicked:
-    # Clear all session state and rerun
     st.session_state.clear()
-    st.experimental_rerun()
+    # Returning causes Streamlit to re-run from the top, now with a fresh (cleared) state.
+    st.write("")  # A no-op write to ensure minimal output
+    st.stop()
 
+# If Convert is clicked, generate new results
 if convert_clicked:
     raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
     prepared_urls = []
