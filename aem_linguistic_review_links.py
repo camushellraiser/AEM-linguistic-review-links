@@ -169,7 +169,10 @@ if st.button("🔄 Convert URLs"):
         for locale, url_list in grouped_urls.items():
             flag = FLAG_BY_LOCALE.get(locale, "")
             st.markdown(f"### {locale} {flag}")
-            st.text("\n\n".join(url_list))  # Blank line between each URL
+            # Display each URL with st.write for full visibility and clickable links
+            for url in url_list:
+                st.write(url)
+                st.write(" ")  # blank line
 
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
