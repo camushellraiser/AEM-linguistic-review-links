@@ -81,7 +81,7 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
-st.markdown("Paste URLs/paths/rows below, then choose locale targets and click Convert:")
+st.markdown("Paste URLs/paths/rows below, then choose locale targets and click Convert or Reset:")
 
 # Session state initialization
 if "urls" not in st.session_state:
@@ -115,9 +115,12 @@ with col2:
     reset_clicked = st.button("🔁 Reset")
 
 if reset_clicked:
-    for key in ["urls", "locales", "grouped_urls", "excel_bytes"]:
-        if key in st.session_state:
-            del st.session_state[key]
+    # Reset all UI inputs and outputs
+    st.session_state.urls = ""
+    st.session_state.locales = []
+    st.session_state.grouped_urls = {}
+    st.session_state.excel_bytes = None
+    # Rerun to refresh UI
     st.experimental_rerun()
 
 if convert_clicked:
