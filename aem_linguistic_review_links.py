@@ -124,11 +124,11 @@ with col2:
     reset_clicked = st.button("🔁 Reset")
 
 if reset_clicked:
-    st.session_state.clear()
-    st.experimental_rerun()
+    # Force a full page reload via JavaScript
+    st.markdown('<script>window.location.reload()</script>', unsafe_allow_html=True)
+    # Stop further execution
+    st.stop()
 
-# Conversion logic
-grouped_urls = {}
 if convert_clicked:
     if not selected_locales:
         st.warning("Please select at least one locale.")
