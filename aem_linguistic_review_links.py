@@ -82,8 +82,8 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
-# Page type selection
-type_option = st.radio("Select Page Type:", ["Regular Page", "Launch Page"]) 
+# Page type selection (renamed)
+type_option = st.radio("Select Page Type:", ["Same Page(s)", "Different Page(s)"])
 
 # Shared: locale selection dropdown with flags
 display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCALE_TO_PATH.keys()}
@@ -98,7 +98,7 @@ selected_locales = [display_to_locale[d] for d in selected_display]
 
 # Depending on page type, render text inputs
 table_inputs = {}
-if type_option == "Launch Page":
+if type_option == "Different Page(s)":
     # For each selected locale, show a separate text area
     for locale in selected_locales:
         flag = FLAG_BY_LOCALE.get(locale, "")
@@ -108,7 +108,7 @@ if type_option == "Launch Page":
             height=150,
             key=key_name
         )
-elif type_option == "Regular Page":
+elif type_option == "Same Page(s)":
     # Single text area for all locales
     table_inputs["regular"] = st.text_area(
         "📥 Paste URLs/paths/rows here:",
@@ -126,33 +126,29 @@ with col2:
 if reset_clicked:
     # Force a full page reload via JavaScript
     st.markdown('<script>window.location.reload()</script>', unsafe_allow_html=True)
-    # Stop further execution
     st.stop()
 
 if convert_clicked:
-    grouped_urls = {}  # Initialize here to avoid NameError
+    grouped_urls = {}
     if not selected_locales:
         st.warning("Please select at least one locale.")
     else:
-        if type_option == "Launch Page":
-            # For each locale, process its specific input
+        if type_option == "Different Page(s)":
             for locale in selected_locales:
                 raw_text = table_inputs.get(locale, "")
                 raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-                prepared = [ensure_full_url(item.split("	")[1]) if "	" in item else ensure_full_url(item) for item in raw_items]
+                prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
-        else:
-            # Regular Page: use single text area for all locales
+        else:  # Same Page(s)
             raw_text = table_inputs.get("regular", "")
             raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-            prepared = [ensure_full_url(item.split("	")[1]) if "	" in item else ensure_full_url(item) for item in raw_items]
+            prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
             for locale in selected_locales:
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
-    # Store results in session state for display and Excel export for display and Excel export
     st.session_state.grouped_urls = grouped_urls
     # Build Excel bytes
     all_rows = [{"Locale": loc, "AEM Linguistic Review Links": u}
