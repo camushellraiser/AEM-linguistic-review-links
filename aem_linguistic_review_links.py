@@ -115,9 +115,9 @@ with col2:
     reset_clicked = st.button("🔁 Reset")
 
 if reset_clicked:
-    # Clear all session state and rerun app
+    # Clear all session state and immediately stop so the app re-runs with a clean state
     st.session_state.clear()
-    st.experimental_rerun()
+    st.stop()
 
 if convert_clicked:
     raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
