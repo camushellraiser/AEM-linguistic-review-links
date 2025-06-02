@@ -82,7 +82,7 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
-# Page type selection (renamed)
+# Page type selection
 type_option = st.radio(
     "Select Page Type:",
     [
@@ -90,11 +90,10 @@ type_option = st.radio(
         "Different Page(s) - Use for several locales using different pages or for Launch Pages"
     ]
 )
-# Strip the description part after selection
-if " - " in type_option:
-    type_option = type_option.split(" - ")[0]
+# Strip description
+type_option = type_option.split(" - ")[0]
 
-# Shared: locale selection dropdown with flags
+# Locale selection dropdown with flags
 display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCALE_TO_PATH.keys()}
 sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
 selected_display = st.multiselect(
@@ -105,7 +104,7 @@ selected_display = st.multiselect(
 )
 selected_locales = [display_to_locale[d] for d in selected_display]
 
-# Depending on page type, render text inputs
+# Render text inputs based on page type
 table_inputs = {}
 if type_option == "Different Page(s)":
     for locale in selected_locales:
@@ -119,22 +118,19 @@ elif type_option == "Same Page(s)":
         "📥 Paste URLs/paths/rows here:", height=200, key="urls"
     )
 
-# Buttons and Download placement
-col1, col2, col3 = st.columns([1,1,1])
-with col1:
+# Buttons and placeholder for download
+grid1, grid2, grid3 = st.columns([1,1,1])
+with grid1:
     convert_clicked = st.button("🔄 Convert URLs")
-with col2:
+with grid2:
     reset_clicked = st.button("🔁 Reset")
-with col3:
+with grid3:
     download_placeholder = st.empty()
 
-# Reset logic: reload the page
-def reload_page():
+# Reset logic: full reload
+if reset_clicked:
     st.markdown('<meta http-equiv="refresh" content="0">', unsafe_allow_html=True)
     st.stop()
-
-if reset_clicked:
-    reload_page()
 
 # Conversion logic
 grouped_urls = {}
@@ -146,18 +142,25 @@ if convert_clicked:
             for locale in selected_locales:
                 raw_text = table_inputs.get(locale, "")
                 raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-                prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
+                prepared = [
+                    ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item)
+                    for item in raw_items
+                ]
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
         else:  # Same Page(s)
             raw_text = table_inputs.get("regular", "")
             raw_items = [u for u in raw_text.strip().splitlines() if u.strip()]
-            prepared = [ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item) for item in raw_items]
+            prepared = [
+                ensure_full_url(item.split("\t")[1]) if "\t" in item else ensure_full_url(item)
+                for item in raw_items
+            ]
             for locale in selected_locales:
                 new_path = LOCALE_TO_PATH[locale]
                 converted = [replace_locale_path(url, new_path) for url in prepared]
                 grouped_urls[locale] = converted
+
     st.session_state.grouped_urls = grouped_urls
     # Build Excel bytes
     all_rows = [{"Locale": loc, "AEM Linguistic Review Links": u}
@@ -170,7 +173,9 @@ if convert_clicked:
         ws.set_column("A:A", 20)
         ws.set_column("B:B", 60)
     st.session_state.excel_bytes = buf.getvalue()
-    # Show download button in placeholder
+
+# Show download button if Excel data exists
+if "excel_bytes" in st.session_state and st.session_state.excel_bytes:
     download_placeholder.download_button(
         label="📥 Download as Excel (.xlsx)",
         data=st.session_state.excel_bytes,
@@ -178,7 +183,7 @@ if convert_clicked:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-# Display converted URLs below
+# Display converted URLs below if available
 if "grouped_urls" in st.session_state and st.session_state.grouped_urls:
     st.subheader("✅ Converted URLs by Locale")
     for locale, url_list in st.session_state.grouped_urls.items():
