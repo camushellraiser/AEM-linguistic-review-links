@@ -51,57 +51,30 @@ if "urls" not in st.session_state:
 if "locales" not in st.session_state:
     st.session_state.locales = []
 
+# Build display labels combining flag + locale code
+display_to_locale = {
+    f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc
+    for loc in LOCALE_TO_PATH.keys()
+}
+# Sort display labels alphabetically by locale code portion
+sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
+
 # Input fields
 urls_input = st.text_area("📥 Paste URLs here:", value=st.session_state.urls, height=200, key="urls")
-selected_locales = st.multiselect(
+selected_display = st.multiselect(
     "🌍 Select target locales:",
-    options=sorted(LOCALE_TO_PATH.keys()),  # Sort locales alphabetically
-    default=st.session_state.locales,
+    options=sorted_display_labels,  # Show flag + locale
+    default=[f"{FLAG_BY_LOCALE.get(loc, '')} {loc}" for loc in st.session_state.locales],
     key="locales"
 )
+# Convert back to pure locale codes
+selected_locales = [display_to_locale[d] for d in selected_display]
 
-def convert_domain_and_protocol(url: str) -> str:
-    """
-    Change the domain/protocol from 'https://author-prod-use1.aemprod.thermofisher.net'
-    to 'http://author1.prod.thermofisher.com', leaving the rest of the path intact.
-    """
-    return url.replace(
-        "https://author-prod-use1.aemprod.thermofisher.net",
-        "http://author1.prod.thermofisher.com"
-    )
-
-
-def replace_locale_path(url: str, new_path_segment: str) -> str:
-    """
-    Look for any existing LOCALE_TO_PATH value in the URL (e.g. '/japan/ja-jp/').
-    If found, compare the 'country' (first part) of that segment to the new one:
-      - If same country, do nothing to the path.
-      - If different country, replace '/<existing_segment>/' with '/<new_path_segment>/'.
-    If no known segment is found, leave the path unchanged.
-    """
-    for existing_segment in LOCALE_TO_PATH.values():
-        token = f"/{existing_segment}/"
-        if token in url:
-            existing_country = existing_segment.split("/")[0]
-            new_country = new_path_segment.split("/")[0]
-            if existing_country == new_country:
-                return url  # Same country, no path change
-            return url.replace(token, f"/{new_path_segment}/")
-
-    return url  # No known locale segment found
-
-# Buttons
-col1, col2 = st.columns([1, 1])
-with col1:
-    convert = st.button("🔄 Convert URLs")
-with col2:
-    reset = st.button("🔁 Reset")
-
-if reset:
+if st.button("🔁 Reset"):
     st.session_state.clear()
     st.rerun()
 
-if convert:
+if st.button("🔄 Convert URLs"):
     if not urls_input.strip():
         st.warning("Please paste at least one URL.")
     elif not selected_locales:
@@ -114,16 +87,17 @@ if convert:
             new_path = LOCALE_TO_PATH[locale]
             converted = []
             for url in urls:
+                # Replace locale path and domain/protocol
                 updated_url = replace_locale_path(url, new_path)
                 final_url = convert_domain_and_protocol(updated_url)
                 converted.append(final_url)
             grouped_urls[locale] = converted
 
-        # Build a list of dicts, skipping blank URLs
+        # Build rows for Excel, skipping blank URLs
         all_rows = [
             {"Locale": locale, "AEM Linguistic Review Links": url}
-            for locale, urls in grouped_urls.items()
-            for url in urls
+            for locale, urls_list in grouped_urls.items()
+            for url in urls_list
             if url.strip()
         ]
         df_result = pd.DataFrame(all_rows)
@@ -152,3 +126,21 @@ if convert:
             file_name="AEM Linguistic Review Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+def convert_domain_and_protocol(url: str) -> str:
+    return url.replace(
+        "https://author-prod-use1.aemprod.thermofisher.net",
+        "http://author1.prod.thermofisher.com"
+    )
+
+
+def replace_locale_path(url: str, new_path_segment: str) -> str:
+    for existing_segment in LOCALE_TO_PATH.values():
+        token = f"/{existing_segment}/"
+        if token in url:
+            existing_country = existing_segment.split("/")[0]
+            new_country = new_path_segment.split("/")[0]
+            if existing_country == new_country:
+                return url
+            return url.replace(token, f"/{new_path_segment}/")
+    return url  # No known locale segment found
