@@ -41,11 +41,8 @@ FLAG_BY_LOCALE = {
 
 BASE_PREFIX = "http://author1.prod.thermofisher.com/editor.html"
 
-# --- Define helper functions before usage ---
+# --- Helper functions ---
 def ensure_full_url(item: str) -> str:
-    """
-    Given a path string (starting with '/') or full URL, return a full URL prefixed with BASE_PREFIX and ending in .html.
-    """
     item = item.strip()
     if not item:
         return ""
@@ -63,7 +60,6 @@ def ensure_full_url(item: str) -> str:
             "http://author1.prod.thermofisher.com"
         )
         return full
-    # Should not reach here, but if it does, treat as relative path
     full = f"{BASE_PREFIX}/{item}"
     if not full.endswith(".html"):
         full += ".html"
@@ -71,10 +67,6 @@ def ensure_full_url(item: str) -> str:
 
 
 def replace_locale_path(url: str, new_path_segment: str) -> str:
-    """
-    Replace any existing LOCALE_TO_PATH segment in the URL's path with new_path_segment,
-    only if the country differs.
-    """
     for existing_segment in LOCALE_TO_PATH.values():
         token = f"/{existing_segment}/"
         if token in url:
@@ -89,17 +81,20 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
-st.markdown("Paste one or more full URLs, relative paths, or tab-separated rows here (one per line), then choose locale targets:")
+st.markdown("Paste URLs/paths/rows below, then choose locale targets and click Convert:")
 
 # Session state initialization
 if "urls" not in st.session_state:
     st.session_state.urls = ""
 if "locales" not in st.session_state:
-    st.session_state.locales = []  # Stores display labels (flag + code)
+    st.session_state.locales = []
+if "grouped_urls" not in st.session_state:
+    st.session_state.grouped_urls = {}
+if "excel_bytes" not in st.session_state:
+    st.session_state.excel_bytes = None
 
 # Build display labels combining flag + locale code
 display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCALE_TO_PATH.keys()}
-# Sort display labels alphabetically by locale code portion
 sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
 
 # Input fields
@@ -110,73 +105,70 @@ selected_display = st.multiselect(
     default=st.session_state.locales,
     key="locales"
 )
-# Convert selected display back to pure locale codes
 selected_locales = [display_to_locale[d] for d in selected_display]
 
-if st.button("🔁 Reset"):
-    st.session_state.clear()
-    st.rerun()
+# Buttons
+col1, col2 = st.columns(2)
+with col1:
+    convert_clicked = st.button("🔄 Convert URLs")
+with col2:
+    reset_clicked = st.button("🔁 Reset")
 
-if st.button("🔄 Convert URLs"):
-    if not urls_input.strip():
-        st.warning("Please paste at least one URL, path, or row.")
-    elif not selected_locales:
-        st.warning("Please select at least one locale.")
-    else:
-        raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
-        prepared_urls = []
-        for item in raw_items:
-            if "\t" in item:
-                parts = item.split("\t")
-                # second column is path
-                path = parts[1]
-                full = ensure_full_url(path)
-            else:
-                full = ensure_full_url(item)
-            prepared_urls.append(full)
+if reset_clicked:
+    for key in ["urls", "locales", "grouped_urls", "excel_bytes"]:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.experimental_rerun()
 
-        grouped_urls = {}
-        for locale in selected_locales:
-            new_path = LOCALE_TO_PATH[locale]
-            converted = []
-            for url in prepared_urls:
-                updated_url = replace_locale_path(url, new_path)
-                converted.append(updated_url)
-            grouped_urls[locale] = converted
+if convert_clicked:
+    raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
+    prepared_urls = []
+    for item in raw_items:
+        if "\t" in item:
+            parts = item.split("\t")
+            path = parts[1]
+            full = ensure_full_url(path)
+        else:
+            full = ensure_full_url(item)
+        prepared_urls.append(full)
 
-        # Build rows for Excel, skipping blank URLs
-        all_rows = [
-            {"Locale": locale, "AEM Linguistic Review Links": url}
-            for locale, url_list in grouped_urls.items()
-            for url in url_list
-            if url.strip()
-        ]
-        df_result = pd.DataFrame(all_rows)
+    grouped = {}
+    for locale in selected_locales:
+        new_path = LOCALE_TO_PATH[locale]
+        converted = [replace_locale_path(url, new_path) for url in prepared_urls]
+        grouped[locale] = converted
+    st.session_state.grouped_urls = grouped
 
-        # Write to Excel
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df_result.to_excel(
-                writer,
-                index=False,
-                sheet_name="AEM Linguistic Review Links"
-            )
-            worksheet = writer.sheets["AEM Linguistic Review Links"]
-            worksheet.set_column("A:A", 20)
-            worksheet.set_column("B:B", 60)
+    # Prepare Excel bytes
+    all_rows = [
+        {"Locale": loc, "AEM Linguistic Review Links": u}
+        for loc, urls_list in grouped.items()
+        for u in urls_list
+        if u.strip()
+    ]
+    df_result = pd.DataFrame(all_rows)
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
+        df_result.to_excel(writer, index=False, sheet_name="AEM Linguistic Review Links")
+        ws = writer.sheets["AEM Linguistic Review Links"]
+        ws.set_column("A:A", 20)
+        ws.set_column("B:B", 60)
+    st.session_state.excel_bytes = buf.getvalue()
 
-        st.subheader("✅ Converted URLs by Locale")
-        for locale, url_list in grouped_urls.items():
-            flag = FLAG_BY_LOCALE.get(locale, "")
-            st.markdown(f"### {locale} {flag}")
-            # Display each URL with st.write for full visibility and clickable links
-            for url in url_list:
-                st.write(url)
-                st.write(" ")  # blank line
+# Display results if available
+if st.session_state.grouped_urls:
+    st.subheader("✅ Converted URLs by Locale")
+    for locale, url_list in st.session_state.grouped_urls.items():
+        flag = FLAG_BY_LOCALE.get(locale, "")
+        st.markdown(f"### {locale} {flag}")
+        for u in url_list:
+            st.write(u)
+            st.write(" ")
 
+    if st.session_state.excel_bytes:
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
-            data=output.getvalue(),
+            data=st.session_state.excel_bytes,
             file_name="AEM Linguistic Review Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
