@@ -83,10 +83,13 @@ st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
 # Page type selection (renamed)
-type_option = st.radio("Select Page Type:", [
-    "Same Page(s) - Use for one or several locales using the same page",
-    "Different Page(s) - Use for several locales using different pages or for Launch Pages"
-])
+type_option = st.radio(
+    "Select Page Type:",
+    [
+        "Same Page(s) - Use for one or several locales using the same page",
+        "Different Page(s) - Use for several locales using different pages or for Launch Pages"
+    ]
+)
 # Strip the description part after selection
 if " - " in type_option:
     type_option = type_option.split(" - ")[0]
@@ -105,7 +108,6 @@ selected_locales = [display_to_locale[d] for d in selected_display]
 # Depending on page type, render text inputs
 table_inputs = {}
 if type_option == "Different Page(s)":
-    # For each selected locale, show a separate text area
     for locale in selected_locales:
         flag = FLAG_BY_LOCALE.get(locale, "")
         key_name = f"urls_{locale}"
@@ -113,7 +115,6 @@ if type_option == "Different Page(s)":
             f"📥 Paste URLs/paths for {locale} {flag}:", height=150, key=key_name
         )
 elif type_option == "Same Page(s)":
-    # Single text area for all locales
     table_inputs["regular"] = st.text_area(
         "📥 Paste URLs/paths/rows here:", height=200, key="urls"
     )
@@ -125,21 +126,7 @@ with col1:
 with col2:
     reset_clicked = st.button("🔁 Reset")
 with col3:
-    # Placeholder for download button, shown after conversion
-    download_placeholder = st.empty()([1,1,1])
-with col1:
-    convert_clicked = st.button("🔄 Convert URLs")
-with col2:
-    reset_clicked = st.button("🔁 Reset")
-with col3:
-    # Download button slot (shown only if ready)
-    if "excel_bytes" in st.session_state and st.session_state.excel_bytes:
-        st.download_button(
-            label="📥 Download as Excel (.xlsx)",
-            data=st.session_state.excel_bytes,
-            file_name="AEM Linguistic Review Links.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+    download_placeholder = st.empty()
 
 # Reset logic: reload the page
 def reload_page():
@@ -183,6 +170,13 @@ if convert_clicked:
         ws.set_column("A:A", 20)
         ws.set_column("B:B", 60)
     st.session_state.excel_bytes = buf.getvalue()
+    # Show download button in placeholder
+    download_placeholder.download_button(
+        label="📥 Download as Excel (.xlsx)",
+        data=st.session_state.excel_bytes,
+        file_name="AEM Linguistic Review Links.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # Display converted URLs below
 if "grouped_urls" in st.session_state and st.session_state.grouped_urls:
