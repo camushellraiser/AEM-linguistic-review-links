@@ -22,7 +22,8 @@ LOCALE_TO_PATH = {
 }
 
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
-st.title("🌐 AEM Linguistic Review Links Converter")
+stitle="🌐 AEM Linguistic Review Links Converter"
+st.title(stitle)
 
 st.markdown("Paste one or more URLs below (one per line), then choose one or more locale targets:")
 
@@ -36,7 +37,7 @@ if "locales" not in st.session_state:
 urls_input = st.text_area("📥 Paste URLs here:", value=st.session_state.urls, height=200, key="urls")
 selected_locales = st.multiselect(
     "🌍 Select target locales:",
-    options=list(LOCALE_TO_PATH.keys()),
+    options=sorted(LOCALE_TO_PATH.keys()),  # Sort locales alphabetically
     default=st.session_state.locales,
     key="locales"
 )
@@ -135,7 +136,7 @@ if convert:
         st.subheader("✅ Converted URLs by Locale")
         for locale, url_list in grouped_urls.items():
             st.markdown(f"### {locale}")
-            st.text("\n".join(url_list))
+            st.text("\n\n".join(url_list))  # Add an empty line between each URL
 
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
