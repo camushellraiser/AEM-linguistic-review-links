@@ -125,6 +125,13 @@ with col1:
 with col2:
     reset_clicked = st.button("🔁 Reset")
 with col3:
+    # Placeholder for download button, shown after conversion
+    download_placeholder = st.empty()([1,1,1])
+with col1:
+    convert_clicked = st.button("🔄 Convert URLs")
+with col2:
+    reset_clicked = st.button("🔁 Reset")
+with col3:
     # Download button slot (shown only if ready)
     if "excel_bytes" in st.session_state and st.session_state.excel_bytes:
         st.download_button(
