@@ -71,17 +71,7 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
             # Different country → swap segments
             return url.replace(token, f"/{new_path_segment}/")
 
-    # No exact LOCALE_TO_PATH match found; attempt a generic /xx/xx/ pattern
-    match = re.search(r"/([a-z\-]+/[a-z\-]+)/", url)
-    if match:
-        existing_combo = match.group(1)  # e.g. 'japan/ja-jp'
-        existing_country = existing_combo.split("/")[0]
-        new_country = new_path_segment.split("/")[0]
-        if existing_country == new_country:
-            return url
-        return url.replace(f"/{existing_combo}/", f"/{new_path_segment}/")
-
-    # If nothing matches, leave URL path intact
+    # If no known LOCALE_TO_PATH match found, leave URL path intact
     return url
 
 # Buttons
