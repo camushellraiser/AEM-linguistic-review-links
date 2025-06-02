@@ -84,7 +84,8 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
     # If nothing matches, leave URL path intact
     return url
 
-# Buttons\ ncol1, col2 = st.columns([1, 1])
+# Buttons
+col1, col2 = st.columns([1, 1])
 with col1:
     convert = st.button("🔄 Convert URLs")
 with col2:
@@ -126,7 +127,7 @@ if convert:
         ]
         df_result = pd.DataFrame(all_rows)
 
-        # If you want an extra safety-net, you can also do:
+        # Optional extra filtering (if needed):
         # df_result = df_result[df_result["AEM Linguistic Review Links"].str.strip().astype(bool)]
 
         # Write to Excel
