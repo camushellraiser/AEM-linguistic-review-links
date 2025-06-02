@@ -44,42 +44,36 @@ BASE_PREFIX = "http://author1.prod.thermofisher.com/editor.html"
 # --- Define helper functions before usage ---
 def ensure_full_url(item: str) -> str:
     """
-    Given an input string that may be a full URL or a relative path,
-    return a full URL prefixed with BASE_PREFIX and ending in .html.
+    Given a path string (starting with '/') or full URL, return a full URL prefixed with BASE_PREFIX and ending in .html.
     """
     item = item.strip()
     if not item:
         return ""
     if item.startswith("/"):
-        # Treat as relative path: prefix and add .html if missing
         full = f"{BASE_PREFIX}{item}"
         if not full.endswith(".html"):
             full += ".html"
         return full
-    # If already a full URL
     if item.startswith("http"):
         full = item
         if not full.endswith(".html"):
             full += ".html"
-        # Ensure it uses the correct author domain
         full = full.replace(
             "https://author-prod-use1.aemprod.thermofisher.net",
             "http://author1.prod.thermofisher.com"
         )
         return full
-    # Otherwise, assume it's a path without leading slash
-    if not item.startswith("http") and not item.startswith("/"):
-        full = f"{BASE_PREFIX}/{item}"
-        if not full.endswith(".html"):
-            full += ".html"
-        return full
-    return item
+    # Should not reach here, but if it does, treat as relative path
+    full = f"{BASE_PREFIX}/{item}"
+    if not full.endswith(".html"):
+        full += ".html"
+    return full
 
 
 def replace_locale_path(url: str, new_path_segment: str) -> str:
     """
-    Replace any existing locale segment in the URL's path with new_path_segment,
-    but only if the country differs. Assumes URL contains '/<country>/<locale>/' pattern.
+    Replace any existing LOCALE_TO_PATH segment in the URL's path with new_path_segment,
+    only if the country differs.
     """
     for existing_segment in LOCALE_TO_PATH.values():
         token = f"/{existing_segment}/"
@@ -95,7 +89,7 @@ def replace_locale_path(url: str, new_path_segment: str) -> str:
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
-st.markdown("Paste one or more URLs or relative paths here (one per line), then choose locale targets:")
+st.markdown("Paste one or more full URLs, relative paths, or tab-separated rows here (one per line), then choose locale targets:")
 
 # Session state initialization
 if "urls" not in st.session_state:
@@ -109,7 +103,7 @@ display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCA
 sorted_display_labels = sorted(display_to_locale.keys(), key=lambda x: x.split(" ")[1])
 
 # Input fields
-urls_input = st.text_area("📥 Paste URLs/paths here:", value=st.session_state.urls, height=200, key="urls")
+urls_input = st.text_area("📥 Paste URLs/paths/rows here:", value=st.session_state.urls, height=200, key="urls")
 selected_display = st.multiselect(
     "🌍 Select target locales:",
     options=sorted_display_labels,
@@ -125,14 +119,23 @@ if st.button("🔁 Reset"):
 
 if st.button("🔄 Convert URLs"):
     if not urls_input.strip():
-        st.warning("Please paste at least one URL or path.")
+        st.warning("Please paste at least one URL, path, or row.")
     elif not selected_locales:
         st.warning("Please select at least one locale.")
     else:
-        raw_items = [u.strip() for u in urls_input.strip().splitlines() if u.strip()]
-        prepared_urls = [ensure_full_url(item) for item in raw_items]
-        grouped_urls = {}
+        raw_items = [u for u in urls_input.strip().splitlines() if u.strip()]
+        prepared_urls = []
+        for item in raw_items:
+            if "\t" in item:
+                parts = item.split("\t")
+                # second column is path
+                path = parts[1]
+                full = ensure_full_url(path)
+            else:
+                full = ensure_full_url(item)
+            prepared_urls.append(full)
 
+        grouped_urls = {}
         for locale in selected_locales:
             new_path = LOCALE_TO_PATH[locale]
             converted = []
