@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import re
 
 # Mapping from locale to region path
 LOCALE_TO_PATH = {
@@ -33,44 +34,57 @@ if "locales" not in st.session_state:
 
 # Input fields
 urls_input = st.text_area("📥 Paste URLs here:", value=st.session_state.urls, height=200, key="urls")
-selected_locales = st.multiselect("🌍 Select target locales:", options=list(LOCALE_TO_PATH.keys()), default=st.session_state.locales, key="locales")
+selected_locales = st.multiselect(
+    "🌍 Select target locales:",
+    options=list(LOCALE_TO_PATH.keys()),
+    default=st.session_state.locales,
+    key="locales"
+)
 
-def convert_domain_and_protocol(url):
-    return url.replace("https://author-prod-use1.aemprod.thermofisher.net", "http://author1.prod.thermofisher.com")
+def convert_domain_and_protocol(url: str) -> str:
+    """
+    Change the domain/protocol from 'https://author-prod-use1.aemprod.thermofisher.net'
+    to 'http://author1.prod.thermofisher.com', leaving the rest of the path intact.
+    """
+    return url.replace(
+        "https://author-prod-use1.aemprod.thermofisher.net",
+        "http://author1.prod.thermofisher.com"
+    )
 
-def replace_locale_path(url, new_path_segment):
+
+def replace_locale_path(url: str, new_path_segment: str) -> str:
+    """
+    Look for any existing LOCALE_TO_PATH value in the URL (e.g. '/japan/ja-jp/').
+    If found, compare the 'country' (first part) of that segment to the new one:
+      - If same country, do nothing to the path.
+      - If different country, replace '/<existing_segment>/' with '/<new_path_segment>/'.
+    If no known segment is found, leave the path unchanged.
+    """
     for existing_segment in LOCALE_TO_PATH.values():
-        if f"/{existing_segment}/" in url:
+        token = f"/{existing_segment}/"
+        if token in url:
             existing_country = existing_segment.split("/")[0]
             new_country = new_path_segment.split("/")[0]
             if existing_country == new_country:
-                return url  # Same country, skip path replacement
-            return url.replace(f"/{existing_segment}/", f"/{new_path_segment}/")
+                # Same country → do not touch the path; domain/protocol will be changed separately.
+                return url
+            # Different country → swap segments
+            return url.replace(token, f"/{new_path_segment}/")
 
-    # If not found, try to find any locale pattern in the form of /xx/xx/ and replace it
-    import re
-    match = re.search(r"/(?:[a-z\-]+)/(?:[a-z\-]+)/", url)
+    # No exact LOCALE_TO_PATH match found; attempt a generic /xx/xx/ pattern
+    match = re.search(r"/([a-z\-]+/[a-z\-]+)/", url)
     if match:
-        existing_country = match.group(0).strip("/").split("/")[0]
+        existing_combo = match.group(1)  # e.g. 'japan/ja-jp'
+        existing_country = existing_combo.split("/")[0]
         new_country = new_path_segment.split("/")[0]
         if existing_country == new_country:
             return url
-        return url.replace(match.group(0), f"/{new_path_segment}/")
+        return url.replace(f"/{existing_combo}/", f"/{new_path_segment}/")
 
-    return url.replace(f"/{existing_segment}/", f"/{new_path_segment}/")
-
-    # If not found, try to find any locale pattern in the form of /xx/xx/ and replace it
-    import re
-    match = re.search(r"/(?:[a-z\-]+)/(?:[a-z\-]+)/", url)
-    if match:
-        return url.replace(match.group(0), f"/{new_path_segment}/")
-
+    # If nothing matches, leave URL path intact
     return url
-    return "/".join(parts)
 
-# Buttons
-col1, col2 = st.columns([1, 1])
-
+# Buttons\ ncol1, col2 = st.columns([1, 1])
 with col1:
     convert = st.button("🔄 Convert URLs")
 with col2:
@@ -86,39 +100,52 @@ if convert:
     elif not selected_locales:
         st.warning("Please select at least one locale.")
     else:
-        urls = urls_input.strip().splitlines()
+        urls = [u.strip() for u in urls_input.strip().splitlines() if u.strip()]
         grouped_urls = {}
 
         for locale in selected_locales:
             new_path = LOCALE_TO_PATH[locale]
             converted = []
             for url in urls:
+                # 1) Replace locale path (or leave it if same-country)
                 updated_url = replace_locale_path(url, new_path)
+                # 2) Always convert domain/protocol
                 final_url = convert_domain_and_protocol(updated_url)
                 converted.append(final_url)
             grouped_urls[locale] = converted
 
-        # Display results in grouped blocks
+        # Build a list of dicts but skip any blank URLs
+        all_rows = [
+            {
+                "Locale": locale,
+                "AEM Linguistic Review Links": url
+            }
+            for locale, urls in grouped_urls.items()
+            for url in urls
+            if url.strip()  # <-- removes any truly empty or whitespace URLs
+        ]
+        df_result = pd.DataFrame(all_rows)
+
+        # If you want an extra safety-net, you can also do:
+        # df_result = df_result[df_result["AEM Linguistic Review Links"].str.strip().astype(bool)]
+
+        # Write to Excel
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df_result.to_excel(
+                writer,
+                index=False,
+                sheet_name="AEM Linguistic Review Links"
+            )
+            worksheet = writer.sheets["AEM Linguistic Review Links"]
+            worksheet.set_column("A:A", 20)  # Locale column width
+            worksheet.set_column("B:B", 60)  # URL column width
+
         st.subheader("✅ Converted URLs by Locale")
         for locale, url_list in grouped_urls.items():
             st.markdown(f"### {locale}")
             st.text("\n".join(url_list))
 
-        # Export to Excel
-        all_rows = [
-            {"Locale": locale, "Converted URL": url}
-            for locale, urls in grouped_urls.items()
-            for url in urls
-        ]
-        df_result = pd.DataFrame(all_rows)
-        df_result.rename(columns={"Converted URL": "AEM Linguistic Review Links"}, inplace=True)
-
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df_result.to_excel(writer, index=False, sheet_name="AEM Linguistic Review Links")
-            worksheet = writer.sheets["AEM Linguistic Review Links"]
-            worksheet.set_column("A:A", 20)
-            worksheet.set_column("B:B", 60)
         st.download_button(
             label="📥 Download as Excel (.xlsx)",
             data=output.getvalue(),
