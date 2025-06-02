@@ -39,6 +39,26 @@ FLAG_BY_LOCALE = {
     "ja-JP": "🇯🇵"
 }
 
+# --- Define helper functions before usage ---
+def convert_domain_and_protocol(url: str) -> str:
+    return url.replace(
+        "https://author-prod-use1.aemprod.thermofisher.net",
+        "http://author1.prod.thermofisher.com"
+    )
+
+
+def replace_locale_path(url: str, new_path_segment: str) -> str:
+    for existing_segment in LOCALE_TO_PATH.values():
+        token = f"/{existing_segment}/"
+        if token in url:
+            existing_country = existing_segment.split("/")[0]
+            new_country = new_path_segment.split("/")[0]
+            if existing_country == new_country:
+                return url
+            return url.replace(token, f"/{new_path_segment}/")
+    return url  # No known locale segment found
+
+# --- Streamlit UI ---
 st.set_page_config(page_title="AEM Linguistic Review Links", layout="centered")
 st.title("🌐 AEM Linguistic Review Links Converter")
 
@@ -48,8 +68,7 @@ st.markdown("Paste one or more URLs below (one per line), then choose one or mor
 if "urls" not in st.session_state:
     st.session_state.urls = ""
 if "locales" not in st.session_state:
-    # Store display labels initially empty
-    st.session_state.locales = []
+    st.session_state.locales = []  # Stores display labels (flag + code)
 
 # Build display labels combining flag + locale code
 display_to_locale = {f"{FLAG_BY_LOCALE.get(loc, '')} {loc}": loc for loc in LOCALE_TO_PATH.keys()}
@@ -122,22 +141,3 @@ if st.button("🔄 Convert URLs"):
             file_name="AEM Linguistic Review Links.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-
-def convert_domain_and_protocol(url: str) -> str:
-    return url.replace(
-        "https://author-prod-use1.aemprod.thermofisher.net",
-        "http://author1.prod.thermofisher.com"
-    )
-
-
-def replace_locale_path(url: str, new_path_segment: str) -> str:
-    for existing_segment in LOCALE_TO_PATH.values():
-        token = f"/{existing_segment}/"
-        if token in url:
-            existing_country = existing_segment.split("/")[0]
-            new_country = new_path_segment.split("/")[0]
-            if existing_country == new_country:
-                return url
-            return url.replace(token, f"/{new_path_segment}/")
-    return url  # No known locale segment found
