@@ -130,6 +130,8 @@ if reset_clicked:
     st.stop()
 
 if convert_clicked:
+    grouped_urls = {}  # Initialize here to avoid NameError
+    if not selected_locales:
     if not selected_locales:
         st.warning("Please select at least one locale.")
     else:
