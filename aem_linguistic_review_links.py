@@ -87,7 +87,7 @@ type_option = st.radio(
     "Select Page Type:",
     [
         "Same Page(s) - _Use for one or several locales using the same page_",
-        "Different Page(s) - _Use for several locales using different pages or for Launch Pages_"
+        "Different Page(s) - _Use for several locales using different pages_"
     ]
 )
 # Strip description
